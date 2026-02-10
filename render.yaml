@@ -1,0 +1,16 @@
+services:
+  - type: web
+    runtime: node
+    name: coffee-shop
+    repo: https://github.com/ilarvne/coffee-shop
+    branch: main
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: MONGO_URI
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 7d
