@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coffee Shop Manager</title>
+    <!-- Bootswatch Flatly Theme -->
+    <link href="https://cdn.jsdelivr.net/npm/bootswatch@5.3.2/dist/flatly/bootstrap.min.css" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --coffee-primary: #6f4e37;
+            --coffee-secondary: #8b5a2b;
+            --coffee-cream: #f5f0eb;
+            --coffee-dark: #3e2723;
+            --coffee-accent: #d2691e;
+        }
+
+        body {
+            background-color: var(--coffee-cream);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+
+        /* Overriding Primary Colors for Coffee Theme */
+        .bg-primary { background-color: var(--coffee-primary) !important; }
+        .text-primary { color: var(--coffee-primary) !important; }
+        .btn-primary { 
+            background-color: var(--coffee-primary) !important; 
+            border-color: var(--coffee-primary) !important; 
+        }
+        .btn-primary:hover { 
+            background-color: var(--coffee-secondary) !important;
+            border-color: var(--coffee-secondary) !important;
+        }
+        
+        .navbar {
+            background-color: var(--coffee-primary) !important;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .navbar-brand {
+            color: #fff !important;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+            background-color: #fff;
+            overflow: hidden;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .menu-img-placeholder {
+            height: 200px;
+            background: linear-gradient(135deg, var(--coffee-secondary), var(--coffee-primary));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: rgba(255,255,255,0.8);
+        }
+        
+        .menu-img {
+            height: 200px;
+            object-fit: cover;
+            width: 100%;
+        }
+
+        .unavailable {
+            opacity: 0.7;
+            filter: grayscale(0.8);
+        }
+
+        .badge-hot { background-color: #e74c3c !important; } /* Danger */
+        .badge-cold { background-color: #3498db !important; } /* Info */
+        .badge-pastry { background-color: #f39c12 !important; } /* Warning */
+        .badge-snack { background-color: #18bc9c !important; } /* Success */
+
+        .auth-container {
+            max-width: 450px;
+            margin: 80px auto;
+        }
+
+        .floating-action-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 1000;
+            font-size: 24px;
+        }
+
+        /* Loading Overlay */
+        #loading-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255,255,255,0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .toast-container {
+            z-index: 1060;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--coffee-cream);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--coffee-secondary);
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay">
+        <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container position-fixed top-0 end-0 p-3" id="toast-wrapper"></div>
+
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark mb-4 d-none" id="app-navbar">
+        <div class="container">
+            <a class="navbar-brand" href="#" onclick="navigateTo('menu')">
+                <i data-lucide="coffee"></i> Coffee Shop
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="navigateTo('menu')">Menu</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="navigateTo('explore')">Explore Recipes</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="navigateTo('profile')">Profile</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-danger" href="#" onclick="logout()">
+                            <i data-lucide="log-out" style="width: 18px; height: 18px;"></i> Logout
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Guest Navigation (Only visible when browsing external while not logged in) -->
+    <nav class="navbar navbar-expand-lg navbar-dark mb-4 d-none" id="guest-navbar">
+        <div class="container">
+            <span class="navbar-brand">
+                <i data-lucide="globe"></i> Coffee Recipe Browser
+            </span>
+            <div class="d-flex">
+                <button class="btn btn-outline-light" onclick="showAuth()">
+                    <i data-lucide="log-in" style="width: 16px; height: 16px;"></i> Back to Login
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="container" id="main-container">
+
+        <!-- AUTH SECTION -->
+        <div id="auth-section" class="auth-container fade-in">
+            <div class="text-center mb-4">
+                <div class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                    <i data-lucide="coffee" size="40"></i>
+                </div>
+                <h2 class="text-primary fw-bold">Welcome Back</h2>
+                <p class="text-muted">Manage your coffee shop with style</p>
+            </div>
+
+            <div class="card p-4">
+                <ul class="nav nav-tabs nav-fill mb-3" id="authTab" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active fw-bold" id="login-tab" data-bs-toggle="tab" data-bs-target="#login-pane" type="button">Login</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link fw-bold" id="register-tab" data-bs-toggle="tab" data-bs-target="#register-pane" type="button">Register</button>
+                    </li>
+                </ul>
+                
+                <div class="tab-content" id="authTabContent">
+                    <!-- Login Form -->
+                    <div class="tab-pane fade show active" id="login-pane" role="tabpanel">
+                        <form id="login-form">
+                            <div class="mb-3">
+                                <label class="form-label">Email Address</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i data-lucide="mail" size="18"></i></span>
+                                    <input type="email" class="form-control" name="email" required placeholder="barista@coffee.shop">
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Password</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i data-lucide="lock" size="18"></i></span>
+                                    <input type="password" class="form-control" name="password" required placeholder="••••••••">
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100 py-2 fw-bold">Sign In</button>
+                        </form>
+                    </div>
+
+                    <!-- Register Form -->
+                    <div class="tab-pane fade" id="register-pane" role="tabpanel">
+                        <form id="register-form">
+                            <div class="mb-3">
+                                <label class="form-label">Full Name</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i data-lucide="user" size="18"></i></span>
+                                    <input type="text" class="form-control" name="name" required placeholder="John Doe">
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Email Address</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i data-lucide="mail" size="18"></i></span>
+                                    <input type="email" class="form-control" name="email" required placeholder="barista@coffee.shop">
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Password</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i data-lucide="lock" size="18"></i></span>
+                                    <input type="password" class="form-control" name="password" required placeholder="Min 6 characters" minlength="6">
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100 py-2 fw-bold">Create Account</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="text-center mt-4">
+                <p class="text-muted mb-2">Just browsing?</p>
+                <button class="btn btn-outline-primary rounded-pill px-4" onclick="browseExternalPublic()">
+                    <i data-lucide="globe" class="me-2"></i> Browse Coffee Recipes
+                </button>
+            </div>
+        </div>
+
+        <!-- MENU SECTION -->
+        <div id="menu-section" class="d-none">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h3 class="fw-bold text-primary"><i data-lucide="menu" class="me-2"></i>Current Menu</h3>
+                <div class="badge bg-secondary p-2 rounded-pill text-dark">
+                    <span id="menu-count">0</span> Items
+                </div>
+            </div>
+
+            <div id="menu-grid" class="row g-4">
+                <!-- Menu Items injected here -->
+            </div>
+            
+            <div id="menu-empty" class="text-center py-5 d-none">
+                <i data-lucide="coffee" size="64" class="text-muted mb-3"></i>
+                <h4 class="text-muted">No items yet</h4>
+                <p class="text-muted">Start adding delicious items to your menu!</p>
+            </div>
+
+            <button class="btn btn-primary floating-action-btn" onclick="openAddModal()" title="Add Item">
+                <i data-lucide="plus"></i>
+            </button>
+        </div>
+
+        <!-- EXPLORE SECTION -->
+        <div id="explore-section" class="d-none">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h3 class="fw-bold text-primary"><i data-lucide="globe" class="me-2"></i>Explore Coffee Recipes</h3>
+                    <p class="text-muted mb-0">Discover coffee &amp; tea recipes from around the world</p>
+                </div>
+                <div class="badge bg-info p-2" id="explore-source">Source: External API</div>
+            </div>
+            
+            <div id="explore-grid" class="row g-4">
+                <!-- External items injected here -->
+            </div>
+        </div>
+
+        <!-- PROFILE SECTION -->
+        <div id="profile-section" class="d-none">
+            <div class="row justify-content-center">
+                <div class="col-md-8">
+                    <div class="card p-4">
+                        <div class="text-center mb-4">
+                            <div class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 100px; height: 100px; font-size: 2.5rem;">
+                                <span id="profile-avatar-letter">U</span>
+                            </div>
+                            <h3 class="fw-bold" id="profile-display-name">User Name</h3>
+                            <p class="text-muted" id="profile-display-email">user@example.com</p>
+                            <small class="text-muted d-block mt-2">Member since: <span id="profile-joined">...</span></small>
+                        </div>
+
+                        <hr>
+
+                        <h5 class="fw-bold mb-3"><i data-lucide="settings" class="me-2"></i>Edit Profile</h5>
+                        <form id="profile-form">
+                            <div class="mb-3">
+                                <label class="form-label">Full Name</label>
+                                <input type="text" class="form-control" name="name" id="profile-edit-name">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Email Address</label>
+                                <input type="email" class="form-control" name="email" id="profile-edit-email">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">New Password (leave blank to keep current)</label>
+                                <input type="password" class="form-control" name="password" placeholder="••••••••">
+                            </div>
+                            <div class="d-flex justify-content-end">
+                                <button type="submit" class="btn btn-success px-4">Save Changes</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Modals -->
+
+    <!-- Add/Edit Item Modal -->
+    <div class="modal fade" id="itemModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="itemModalTitle">Add Menu Item</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="item-form">
+                        <input type="hidden" name="id" id="item-id">
+                        <div class="mb-3">
+                            <label class="form-label">Item Name *</label>
+                            <input type="text" class="form-control" name="name" required placeholder="e.g. Caramel Macchiato">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Description</label>
+                            <textarea class="form-control" name="description" rows="2" placeholder="Rich espresso with vanilla and caramel drizzle"></textarea>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Price ($) *</label>
+                                <input type="number" class="form-control" name="price" step="0.01" required placeholder="4.50">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Category *</label>
+                                <select class="form-select" name="category" required>
+                                    <option value="hot">Hot Drink</option>
+                                    <option value="cold">Cold Drink</option>
+                                    <option value="pastry">Pastry</option>
+                                    <option value="snack">Snack</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Image URL</label>
+                            <input type="url" class="form-control" name="image" placeholder="https://example.com/image.jpg">
+                        </div>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" name="available" id="item-available" checked>
+                            <label class="form-check-label" for="item-available">Available in stock</label>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="submitItemForm()">Save Item</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal fade" id="deleteModal" tabindex="-1">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title">Confirm Delete</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    Are you sure you want to delete this item?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="confirm-delete-btn">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap Bundle JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // --- CONSTANTS & STATE ---
+        const API_URL = '/api';
+        let state = {
+            token: localStorage.getItem('token'),
+            user: null,
+            menuItems: [],
+            isPublicMode: false // true when browsing external coffee without login
+        };
+        
+        let itemModal, deleteModal;
+
+        // --- INITIALIZATION ---
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            itemModal = new bootstrap.Modal(document.getElementById('itemModal'));
+            deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+
+            if (state.token) {
+                // Validate token by fetching profile
+                fetchProfile().then(success => {
+                    if (success) {
+                        navigateTo('menu');
+                    } else {
+                        logout();
+                    }
+                });
+            } else {
+                showAuth();
+            }
+
+            // Event Listeners
+            document.getElementById('login-form').addEventListener('submit', handleLogin);
+            document.getElementById('register-form').addEventListener('submit', handleRegister);
+            document.getElementById('profile-form').addEventListener('submit', handleProfileUpdate);
+        });
+
+        // --- NAVIGATION ---
+        function showAuth() {
+            state.isPublicMode = false;
+            document.getElementById('app-navbar').classList.add('d-none');
+            document.getElementById('guest-navbar').classList.add('d-none');
+            hideAllSections();
+            document.getElementById('auth-section').classList.remove('d-none');
+            lucide.createIcons();
+        }
+
+        function browseExternalPublic() {
+            state.isPublicMode = true;
+            hideAllSections();
+            document.getElementById('auth-section').classList.add('d-none');
+            document.getElementById('guest-navbar').classList.remove('d-none');
+            navigateTo('explore');
+        }
+
+        function navigateTo(view) {
+            hideAllSections();
+            
+            // Handle Navbar visibility
+            if (state.token) {
+                document.getElementById('app-navbar').classList.remove('d-none');
+                document.getElementById('guest-navbar').classList.add('d-none');
+                
+                // Update active nav state
+                document.querySelectorAll('.nav-link').forEach(l => { l.classList.remove('active', 'fw-bold'); });
+                // Find link containing onclick="navigateTo('view')" - simple heuristic
+                const activeLink = Array.from(document.querySelectorAll('.nav-link')).find(l => l.getAttribute('onclick')?.includes(view));
+                if(activeLink) activeLink.classList.add('active', 'fw-bold');
+
+            } else if (state.isPublicMode && view === 'explore') {
+                // Public mode
+                document.getElementById('app-navbar').classList.add('d-none');
+                document.getElementById('guest-navbar').classList.remove('d-none');
+            } else {
+                // Fallback to auth
+                showAuth();
+                return;
+            }
+
+            // Route Logic
+            if (view === 'menu') {
+                document.getElementById('menu-section').classList.remove('d-none');
+                fetchMenu();
+            } else if (view === 'explore') {
+                document.getElementById('explore-section').classList.remove('d-none');
+                fetchExternal();
+            } else if (view === 'profile') {
+                document.getElementById('profile-section').classList.remove('d-none');
+                fetchProfile(true); // render data
+            }
+            lucide.createIcons();
+        }
+
+        function hideAllSections() {
+            ['auth-section', 'menu-section', 'explore-section', 'profile-section'].forEach(id => {
+                document.getElementById(id).classList.add('d-none');
+            });
+        }
+
+        // --- AUTHENTICATION ---
+        async function handleLogin(e) {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData.entries());
+            
+            showLoading(true);
+            try {
+                const res = await apiCall('/auth/login', 'POST', data);
+                if (res.token) {
+                    localStorage.setItem('token', res.token);
+                    state.token = res.token;
+                    state.user = res.user;
+                    showToast('Welcome back, ' + res.user.name + '!', 'success');
+                    e.target.reset();
+                    navigateTo('menu');
+                }
+            } catch (err) {
+                showToast(err.message || 'Login failed', 'danger');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        async function handleRegister(e) {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData.entries());
+
+            showLoading(true);
+            try {
+                const res = await apiCall('/auth/register', 'POST', data);
+                if (res.token) {
+                    localStorage.setItem('token', res.token);
+                    state.token = res.token;
+                    state.user = res.user;
+                    showToast('Account created successfully!', 'success');
+                    e.target.reset();
+                    navigateTo('menu');
+                }
+            } catch (err) {
+                showToast(err.message || 'Registration failed', 'danger');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            state.token = null;
+            state.user = null;
+            state.isPublicMode = false;
+            showAuth();
+            showToast('Logged out successfully', 'info');
+        }
+
+        // --- MENU OPERATIONS ---
+        async function fetchMenu() {
+            showLoading(true);
+            try {
+                const res = await apiCall('/menu');
+                state.menuItems = res.menuItems || [];
+                renderMenu();
+            } catch (err) {
+                showToast('Failed to load menu', 'danger');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function renderMenu() {
+            const grid = document.getElementById('menu-grid');
+            const emptyState = document.getElementById('menu-empty');
+            const countBadge = document.getElementById('menu-count');
+            
+            grid.innerHTML = '';
+            countBadge.textContent = state.menuItems.length;
+
+            if (state.menuItems.length === 0) {
+                emptyState.classList.remove('d-none');
+                return;
+            } else {
+                emptyState.classList.add('d-none');
+            }
+
+            state.menuItems.forEach(item => {
+                const col = document.createElement('div');
+                col.className = 'col-md-6 col-lg-4';
+                
+                const categoryClass = {
+                    'hot': 'badge-hot',
+                    'cold': 'badge-cold',
+                    'pastry': 'badge-pastry',
+                    'snack': 'badge-snack'
+                }[item.category] || 'bg-secondary';
+
+                const imageHtml = item.image 
+                    ? `<img src="${item.image}" class="card-img-top menu-img" alt="${item.name}" onerror="this.onerror=null;this.parentElement.innerHTML='<div class=\'menu-img-placeholder\'><i data-lucide=\'coffee\' size=\'48\'></i></div>'">`
+                    : `<div class="menu-img-placeholder"><i data-lucide="coffee" size="48"></i></div>`;
+
+                const availabilityClass = item.available ? '' : 'unavailable';
+                const statusBadge = item.available ? '' : '<span class="badge bg-secondary position-absolute top-0 start-0 m-2">Unavailable</span>';
+
+                col.innerHTML = `
+                    <div class="card h-100 ${availabilityClass}">
+                        ${statusBadge}
+                        <span class="badge ${categoryClass} position-absolute top-0 end-0 m-2 text-white shadow-sm">${item.category.toUpperCase()}</span>
+                        ${imageHtml}
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h5 class="card-title fw-bold mb-0">${item.name}</h5>
+                                <h5 class="text-primary fw-bold">$${Number(item.price).toFixed(2)}</h5>
+                            </div>
+                            <p class="card-text text-muted small">${item.description || 'No description available.'}</p>
+                        </div>
+                        <div class="card-footer bg-white border-top-0 d-flex justify-content-end gap-2 pb-3">
+                            <button class="btn btn-sm btn-outline-primary" onclick='openEditModal(${JSON.stringify(item)})'>
+                                <i data-lucide="edit" style="width:16px;"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="openDeleteModal('${item.id || item._id}')">
+                                <i data-lucide="trash-2" style="width:16px;"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(col);
+            });
+            lucide.createIcons();
+        }
+
+        // Add/Edit Logic
+        function openAddModal() {
+            document.getElementById('item-form').reset();
+            document.getElementById('item-id').value = '';
+            document.getElementById('itemModalTitle').textContent = 'Add Menu Item';
+            itemModal.show();
+        }
+
+        function openEditModal(item) {
+            const form = document.getElementById('item-form');
+            form.querySelector('[name="name"]').value = item.name;
+            form.querySelector('[name="description"]').value = item.description || '';
+            form.querySelector('[name="price"]').value = item.price;
+            form.querySelector('[name="category"]').value = item.category;
+            form.querySelector('[name="image"]').value = item.image || '';
+            form.querySelector('[name="available"]').checked = item.available !== false;
+            document.getElementById('item-id').value = item.id || item._id;
+            
+            document.getElementById('itemModalTitle').textContent = 'Edit Menu Item';
+            itemModal.show();
+        }
+
+        async function submitItemForm() {
+            const form = document.getElementById('item-form');
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+
+            const formData = new FormData(form);
+            const rawData = Object.fromEntries(formData.entries());
+            const id = document.getElementById('item-id').value;
+
+            // Prepare payload
+            const payload = {
+                name: rawData.name,
+                description: rawData.description,
+                price: parseFloat(rawData.price),
+                category: rawData.category,
+                image: rawData.image || '',
+                available: form.querySelector('[name="available"]').checked
+            };
+
+            showLoading(true);
+            try {
+                if (id) {
+                    await apiCall(`/menu/${id}`, 'PUT', payload);
+                    showToast('Item updated', 'success');
+                } else {
+                    await apiCall('/menu', 'POST', payload);
+                    showToast('Item created', 'success');
+                }
+                itemModal.hide();
+                fetchMenu();
+            } catch (err) {
+                showToast(err.message || 'Operation failed', 'danger');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // Delete Logic
+        let itemToDelete = null;
+        function openDeleteModal(id) {
+            itemToDelete = id;
+            deleteModal.show();
+        }
+
+        document.getElementById('confirm-delete-btn').addEventListener('click', async () => {
+            if (!itemToDelete) return;
+            showLoading(true);
+            try {
+                await apiCall(`/menu/${itemToDelete}`, 'DELETE');
+                showToast('Item deleted', 'success');
+                deleteModal.hide();
+                fetchMenu();
+            } catch (err) {
+                showToast('Delete failed', 'danger');
+            } finally {
+                showLoading(false);
+            }
+        });
+
+        // --- EXTERNAL COFFEE ---
+        async function fetchExternal() {
+            showLoading(true);
+            const grid = document.getElementById('explore-grid');
+            grid.innerHTML = '';
+            
+            try {
+                const res = await apiCall('/menu/external/coffee', 'GET', null, true); // Public endpoint
+                const items = res.coffeeItems || [];
+                
+                if(res.source) document.getElementById('explore-source').textContent = `Source: TheCocktailDB`;
+
+                items.forEach(item => {
+                    const col = document.createElement('div');
+                    col.className = 'col-md-6 col-lg-4';
+                    
+                    const img = item.image || null;
+                    const imageHtml = img
+                        ? `<img src="${img}" class="card-img-top menu-img" alt="${item.name}" onerror="this.onerror=null;this.parentElement.innerHTML='<div class=\'menu-img-placeholder\'><i data-lucide=\'coffee\'></i></div>'">`
+                        : `<div class="menu-img-placeholder"><i data-lucide="coffee" size="48"></i></div>`;
+
+                    const ingredientList = (item.ingredients || [])
+                        .map(i => `<span class="badge bg-light text-dark border me-1 mb-1">${i.measure ? i.measure + ' ' : ''}${i.ingredient}</span>`)
+                        .join('');
+
+                    const alcoholicBadge = item.alcoholic === 'Alcoholic'
+                        ? '<span class="badge bg-warning text-dark me-1">Alcoholic</span>'
+                        : '<span class="badge bg-success me-1">Non-alcoholic</span>';
+
+                    col.innerHTML = `
+                        <div class="card h-100">
+                            ${imageHtml}
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h5 class="card-title fw-bold mb-0">${item.name || 'Drink'}</h5>
+                                </div>
+                                <div class="mb-2">
+                                    ${alcoholicBadge}
+                                    <span class="badge bg-info me-1">${item.glass || 'Glass'}</span>
+                                </div>
+                                <p class="card-text text-muted small mb-2" style="max-height: 80px; overflow-y: auto;">${item.instructions || 'No instructions available.'}</p>
+                                <hr class="my-2">
+                                <p class="fw-bold small mb-1"><i data-lucide="list" style="width:14px; height:14px;"></i> Ingredients</p>
+                                <div class="mb-0">
+                                    ${ingredientList || '<span class="text-muted small">No ingredients listed</span>'}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    grid.appendChild(col);
+                });
+                lucide.createIcons();
+
+            } catch (err) {
+                showToast('Failed to load external coffee recipes', 'warning');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // --- PROFILE ---
+        async function fetchProfile(render = false) {
+            // Returns true if token valid, false otherwise
+            try {
+                const res = await apiCall('/users/profile');
+                state.user = res.user;
+                if (render) renderProfile();
+                return true;
+            } catch (err) {
+                return false;
+            }
+        }
+
+        function renderProfile() {
+            if (!state.user) return;
+            const u = state.user;
+            document.getElementById('profile-display-name').textContent = u.name;
+            document.getElementById('profile-display-email').textContent = u.email;
+            document.getElementById('profile-avatar-letter').textContent = u.name.charAt(0).toUpperCase();
+            document.getElementById('profile-joined').textContent = new Date(u.createdAt).toLocaleDateString();
+
+            // Populate form
+            document.getElementById('profile-edit-name').value = u.name;
+            document.getElementById('profile-edit-email').value = u.email;
+        }
+
+        async function handleProfileUpdate(e) {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = {};
+            
+            // Only add fields that have values
+            const name = formData.get('name');
+            const email = formData.get('email');
+            const pwd = formData.get('password');
+
+            if (name) data.name = name;
+            if (email) data.email = email;
+            if (pwd) data.password = pwd;
+
+            showLoading(true);
+            try {
+                const res = await apiCall('/users/profile', 'PUT', data);
+                state.user = res.user;
+                renderProfile();
+                showToast('Profile updated successfully', 'success');
+                e.target.querySelector('[name="password"]').value = ''; // clear pwd field
+            } catch (err) {
+                showToast(err.message || 'Update failed', 'danger');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // --- UTILS ---
+        async function apiCall(endpoint, method = 'GET', body = null, isPublic = false) {
+            const headers = { 'Content-Type': 'application/json' };
+            if (!isPublic && state.token) {
+                headers['Authorization'] = `Bearer ${state.token}`;
+            }
+
+            const config = { method, headers };
+            if (body) config.body = JSON.stringify(body);
+
+            const res = await fetch(API_URL + endpoint, config);
+            const data = await res.json();
+
+            if (!res.ok) {
+                // If 401 unauthorized and not a public/auth endpoint, logout
+                if (res.status === 401 && !endpoint.includes('/auth') && !isPublic) {
+                    logout();
+                    throw new Error('Session expired');
+                }
+                throw new Error(data.message || 'API Error');
+            }
+            return data;
+        }
+
+        function showLoading(show) {
+            const overlay = document.getElementById('loading-overlay');
+            overlay.style.display = show ? 'flex' : 'none';
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-wrapper');
+            const id = 'toast-' + Date.now();
+            
+            const html = `
+                <div id="${id}" class="toast align-items-center text-white bg-${type} border-0" role="alert" aria-live="assertive" aria-atomic="true">
+                    <div class="d-flex">
+                        <div class="toast-body">
+                            ${message}
+                        </div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                    </div>
+                </div>
+            `;
+            
+            container.insertAdjacentHTML('beforeend', html);
+            const toastEl = document.getElementById(id);
+            const toast = new bootstrap.Toast(toastEl);
+            toast.show();
+            
+            toastEl.addEventListener('hidden.bs.toast', () => {
+                toastEl.remove();
+            });
+        }
+    </script>
+</body>
+</html>
