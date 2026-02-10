@@ -380,3 +380,41 @@ The API uses a global error handler that returns consistent JSON responses:
 | `MONGO_URI`    | MongoDB connection string      | `mongodb://localhost:27017/coffee-shop`  |
 | `JWT_SECRET`   | Secret key for signing JWTs    | -                                            |
 | `JWT_EXPIRES_IN` | Token expiration duration    | `7d`                                         |
+
+## Deployment (Render)
+
+The application is deployed on [Render](https://render.com) with MongoDB Atlas as the cloud database.
+
+### Prerequisites
+
+- A [MongoDB Atlas](https://www.mongodb.com/cloud/atlas) account (free M0 cluster)
+- A [Render](https://render.com) account
+- A [GitHub](https://github.com) repository with the project code
+
+### MongoDB Atlas Setup
+
+1. Create a free M0 cluster at [mongodb.com/atlas](https://www.mongodb.com/cloud/atlas)
+2. Under **Database Access**, create a database user with a password
+3. Under **Network Access**, add `0.0.0.0/0` to allow connections from Render
+4. Click **Connect** → **Drivers** → Copy the connection string:
+   ```
+   mongodb+srv://<username>:<password>@cluster0.xxxxx.mongodb.net/coffee-shop?retryWrites=true&w=majority
+   ```
+
+### Render Deployment
+
+1. Push the project to a GitHub repository
+2. Go to [dashboard.render.com](https://dashboard.render.com) → **New** → **Web Service**
+3. Connect your GitHub repository
+4. Configure the service:
+   - **Name**: `coffee-shop`
+   - **Runtime**: Node
+   - **Build Command**: `npm install`
+   - **Start Command**: `npm start`
+5. Add the following **Environment Variables**:
+   - `MONGO_URI` = your MongoDB Atlas connection string
+   - `JWT_SECRET` = a strong random secret key
+   - `JWT_EXPIRES_IN` = `7d`
+6. Click **Deploy**
+
+The `PORT` variable is automatically set by Render — do not add it manually.
