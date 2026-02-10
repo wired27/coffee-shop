@@ -381,6 +381,10 @@ The API uses a global error handler that returns consistent JSON responses:
 | `JWT_SECRET`   | Secret key for signing JWTs    | -                                            |
 | `JWT_EXPIRES_IN` | Token expiration duration    | `7d`                                         |
 
+## Live Demo
+
+**Live URL**: [https://coffee-shop-13u6.onrender.com](https://coffee-shop-13u6.onrender.com)
+
 ## Deployment (Render)
 
 The application is deployed on [Render](https://render.com) with MongoDB Atlas as the cloud database.
