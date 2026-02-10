@@ -2,7 +2,7 @@ services:
   - type: web
     runtime: node
     name: coffee-shop
-    repo: https://github.com/ilarvne/coffee-shop
+    repo: https://github.com/wired27/coffee-shop
     branch: main
     plan: free
     buildCommand: npm install
